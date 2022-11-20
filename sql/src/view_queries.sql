@@ -1,7 +1,8 @@
 -- view stores
 
 -- view products
-
+SELECT *
+FROM product;
 -- view recent orders
 
 -- view recent updates
