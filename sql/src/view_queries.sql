@@ -7,6 +7,7 @@ FROM product;
 
 -- view recent updates
 
+
 SELECT p.updateNumber, p.updatedOn
 FROM productUpdates p
 LEFT OUTER JOIN productUpdates p1
