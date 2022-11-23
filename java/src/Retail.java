@@ -396,7 +396,7 @@ public class Retail {
       }
    }//end
 
-// Rest of the functions definition go in here
+// Rest of the functions definitioa go in here
 
    public static void viewStores(Retail esql) {}
    public static void viewProducts(Retail esql) {
