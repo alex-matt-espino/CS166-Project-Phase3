@@ -8,6 +8,7 @@ WHERE p.storeID = s.storeID AND s.storeID = 1;
 
 -- view recent updates
 
+
 SELECT p.updateNumber, p.updatedOn
 FROM productUpdates p
 LEFT OUTER JOIN productUpdates p1
