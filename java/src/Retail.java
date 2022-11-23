@@ -35,6 +35,9 @@ public class Retail {
    // reference to physical database connection.
    private Connection _connection = null;
 
+   // Member variable for referencing logged in users
+   private String loggedInUserName;
+
    // handling the keyboard inputs through a BufferedReader
    // This variable can be global for convenience.
    static BufferedReader in = new BufferedReader(
@@ -49,6 +52,8 @@ public class Retail {
     * @param password the user login password
     * @throws java.sql.SQLException when failed to make a connection.
     */
+
+
    public Retail(String dbname, String dbport, String user, String passwd) throws SQLException {
 
       System.out.print("Connecting to database...");
@@ -66,6 +71,14 @@ public class Retail {
          System.exit(-1);
       }//end catch
    }//end Retail
+
+   public String getLoggedInUser() {
+      return loggedInUserName;
+   }
+
+   public void setLoggedInUser(String user) {
+      loggedInUserName = user;
+   }
 
    // Method to calculate euclidean distance between two latitude, longitude pairs. 
    public double calculateDistance (double lat1, double long1, double lat2, double long2){
@@ -125,8 +138,8 @@ public class Retail {
 			System.out.println();
 			outputHeader = false;
 		 }
-         for (int i=1; i<=numCol; ++i)
-            System.out.print (rs.getString (i) + "\t");
+      for (int i=1; i<=numCol; ++i)
+         System.out.print (rs.getString (i) + "\t");
          System.out.println ();
          ++rowCount;
       }//end while
@@ -257,7 +270,7 @@ public class Retail {
          boolean keepon = true;
          while(keepon) {
             // These are sample SQL statements
-            System.out.println("MAIN MENU");
+            System.out.println("\nMAIN MENU");
             System.out.println("---------");
             System.out.println("1. Create user");
             System.out.println("2. Log in");
@@ -272,7 +285,7 @@ public class Retail {
             if (authorisedUser != null) {
               boolean usermenu = true;
               while(usermenu) {
-                System.out.println("MAIN MENU");
+                System.out.println("\nMAIN MENU");
                 System.out.println("---------");
                 System.out.println("1. View Stores within 30 miles");
                 System.out.println("2. View Product List");
@@ -387,8 +400,10 @@ public class Retail {
 
          String query = String.format("SELECT * FROM USERS WHERE name = '%s' AND password = '%s'", name, password);
          int userNum = esql.executeQuery(query);
-	 if (userNum > 0)
-		return name;
+	      if (userNum > 0){
+            esql.setLoggedInUser(name);
+		      return name;
+         }
          return null;
       }catch(Exception e){
          System.err.println (e.getMessage ());
@@ -398,37 +413,111 @@ public class Retail {
 
 // Rest of the functions definitioa go in here
 
-   public static void viewStores(Retail esql) {}
-   public static void viewProducts(Retail esql) {
-         
-         try{
-               String query = "SELECT p.storeID, p.productName, p.numberOfUnits FROM product p, store s WHERE p.storeID = s.storeID AND s.storeID = ";
-               System.out.print("\tEnter the storeID to view the products: ");
-               String input = in.readLine();
-               input ="\'" + input + "\'";
-               query += input; 
-               ResultSet rs = esql.executeQuery(query); 
-               int rowCount = 0
-               while(rs.next()){
-                  for(int i = 1; i<= numCol; ++i)
-                  {
-                     System.out.println( rsmd.getColumnName(i) +"=" + rs.getString(i) ); 
-                     System.out.println();
-                     ++rowCount;
-                      
-                  }
-               }
+   public static void viewStores(Retail esql) {
 
-         }catch(Exception e){
-            System.err.println (e.getMessage());
-         }
    }
+
+   public static void viewProducts(Retail esql) {   
+      try{
+            String query = "SELECT p.storeID, p.productName, p.numberOfUnits FROM product p, store s WHERE p.storeID = s.storeID AND s.storeID = ";
+            System.out.print("\tEnter the storeID to view the products: ");
+            String input = in.readLine();
+            input ="\'" + input + "\';";
+            query += input; 
+            int rowCount = esql.executeQueryAndPrintResult(query); 
+      }catch(Exception e){
+         System.err.println (e.getMessage());
+      }
+   }
+
    public static void placeOrder(Retail esql) {}
-   public static void viewRecentOrders(Retail esql) {}
-   public static void updateProduct(Retail esql) {}
-   public static void viewRecentUpdates(Retail esql) {}
-   public static void viewPopularProducts(Retail esql) {}
-   public static void viewPopularCustomers(Retail esql) {}
+
+   public static void viewRecentOrders(Retail esql) {
+      try{
+         String username = esql.getLoggedInUser();
+         String query1 = "SELECT O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime FROM Orders O, Store S, Users U WHERE O.storeID = S.storeID AND U.userID = O.customerID AND U.name = \'";
+         String query2 = "\' GROUP BY O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime ORDER BY 5 DESC LIMIT 5;";
+         String query = query1 + username + query2;
+         int rowCount = esql.executeQueryAndPrintResult(query);
+      }catch(Exception e){
+         System.err.println(e.getMessage());
+      }
+   }
+
+   // ----------manager functions (always check if manager before executing)----------
+
+   public static void updateProduct(Retail esql) {
+      try{
+         String username = esql.getLoggedInUser();
+         //check if logged-in user is a manager
+         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND U.type = \'manager\';");
+         if (storemanager < 1){
+            System.out.print("\nERROR: Must be logged in as a manager to use this function. Exiting...\n\n");
+            return;
+         }
+         String query1 = "";
+         String query2 = "";
+         String query = query1 + username + query2;
+         int rowCount = esql.executeQueryAndPrintResult(query);
+      }catch(Exception e){
+         System.err.println(e.getMessage());
+      }
+   }
+
+   public static void viewRecentUpdates(Retail esql) {
+      try{
+         String username = esql.getLoggedInUser();
+         //check if logged-in user is a manager
+         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND U.type = \'manager\';");
+         if (storemanager < 1){
+            System.out.print("\nERROR: Must be logged in as a manager to use this function. Exiting...\n\n");
+            return;
+         }
+         String query1 = "";
+         String query2 = "";
+         String query = query1 + username + query2;
+         int rowCount = esql.executeQueryAndPrintResult(query);
+      }catch(Exception e){
+         System.err.println(e.getMessage());
+      }
+   }
+
+   public static void viewPopularProducts(Retail esql) {
+      try{
+         String username = esql.getLoggedInUser();
+         //check if logged-in user is a manager
+         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND U.type = \'manager\';");
+         if (storemanager < 1){
+            System.out.print("\nERROR: Must be logged in as a manager to use this function. Exiting...\n\n");
+            return;
+         }
+         String query1 = "SELECT * FROM (SELECT P.productName, COUNT(O.productName) AS total_orders FROM Product P, Orders O, Users U, Store S WHERE U.userID = S.managerID AND P.storeID = S.storeID AND O.storeID = S.storeID AND P.productName = O.productName AND U.name = \'";
+         String query2 = "\' GROUP BY P.productName) AS popular_products ORDER BY 2 DESC LIMIT 5;";
+         String query = query1 + username + query2;
+         int rowCount = esql.executeQueryAndPrintResult(query);
+      }catch(Exception e){
+         System.err.println(e.getMessage());
+      }
+   }
+
+   public static void viewPopularCustomers(Retail esql) {
+      try{
+         String username = esql.getLoggedInUser();
+         //check if logged-in user is a manager
+         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND U.type = \'manager\';");
+         if (storemanager < 1){
+            System.out.print("\nERROR: Must be logged in as a manager to use this function. Exiting...\n\n");
+            return;
+         }
+         String query1 = "";
+         String query2 = "";
+         String query = query1 + username + query2;
+         int rowCount = esql.executeQueryAndPrintResult(query);
+      }catch(Exception e){
+         System.err.println(e.getMessage());
+      }
+   }
+
    public static void placeProductSupplyRequests(Retail esql) {}
 
 }//end Retail
