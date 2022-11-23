@@ -1,8 +1,9 @@
 -- view stores
 
--- view products
-SELECT *
-FROM product;
+-- Browse Products 
+SELECT p.storeID, p.productName, p.numberOfUnits
+FROM product p, store s
+WHERE p.storeID = s.storeID AND s.storeID = 1;
 -- view recent orders
 
 -- view recent updates

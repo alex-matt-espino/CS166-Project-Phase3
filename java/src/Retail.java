@@ -399,7 +399,30 @@ public class Retail {
 // Rest of the functions definition go in here
 
    public static void viewStores(Retail esql) {}
-   public static void viewProducts(Retail esql) {}
+   public static void viewProducts(Retail esql) {
+         
+         try{
+               String query = "SELECT p.storeID, p.productName, p.numberOfUnits FROM product p, store s WHERE p.storeID = s.storeID AND s.storeID = ";
+               System.out.print("\tEnter the storeID to view the products: ");
+               String input = in.readLine();
+               input ="\'" + input + "\'";
+               query += input; 
+               ResultSet rs = esql.executeQuery(query); 
+               int rowCount = 0
+               while(rs.next()){
+                  for(int i = 1; i<= numCol; ++i)
+                  {
+                     System.out.println( rsmd.getColumnName(i) +"=" + rs.getString(i) ); 
+                     System.out.println();
+                     ++rowCount;
+                      
+                  }
+               }
+
+         }catch(Exception e){
+            System.err.println (e.getMessage());
+         }
+   }
    public static void placeOrder(Retail esql) {}
    public static void viewRecentOrders(Retail esql) {}
    public static void updateProduct(Retail esql) {}
