@@ -4,9 +4,18 @@
 -- WHERE
 --pass in user lat/long,
 
+-- Browse Products 
+SELECT p.storeID, p.productName, p.numberOfUnits
+FROM product p, store s
+WHERE p.storeID = s.storeID AND s.storeID = 1;
+-- view recent orders
+
+-- view recent updates
+
 -- view products *
 SELECT *
 FROM product;
+
 
 -- view recent orders *
 SELECT O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime
