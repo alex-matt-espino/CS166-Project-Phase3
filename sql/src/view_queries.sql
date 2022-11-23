@@ -1,23 +1,15 @@
--- view stores
+-- 1: view stores
 -- SELECT S.storeID, S.name
 -- FROM Store S
 -- WHERE
 --pass in user lat/long,
 
--- Browse Products 
+-- 2: Browse Products 
 SELECT p.storeID, p.productName, p.numberOfUnits
 FROM product p, store s
 WHERE p.storeID = s.storeID AND s.storeID = 1;
--- view recent orders
 
--- view recent updates
-
--- view products *
-SELECT *
-FROM product;
-
-
--- view recent orders *
+-- 3: view recent orders *
 SELECT O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime
 FROM Orders O, Store S, Users U
 WHERE O.storeID = S.storeID AND
@@ -27,7 +19,7 @@ GROUP BY O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime
 ORDER BY 5 DESC
 LIMIT 5;
 
--- view recent updates *
+-- 4: view recent updates *
 SELECT p.updateNumber, p.updatedOn
 FROM productUpdates p
 LEFT OUTER JOIN productUpdates p1
@@ -38,7 +30,7 @@ ORDER BY p.updatedOn asc
 FETCH FIRST 10 ROWS ONLY;
 
 
--- view popular products *
+-- 5: view popular products *
 SELECT *
 FROM (SELECT P.productName, COUNT(O.productName) AS total_orders
       FROM Product P, Orders O, Users U, Store S
@@ -60,4 +52,4 @@ LIMIT 5;
 -- ORDER BY 2 DESC
 -- LIMIT 10;
 
--- view popular customers
+-- 6: view popular customers
