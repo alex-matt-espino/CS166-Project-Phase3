@@ -9,6 +9,7 @@
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 logfile
+Retail.class
 # Local History for Visual Studio Code
 .history/
 
