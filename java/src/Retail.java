@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.util.List;
 import java.util.ArrayList;
 import java.lang.Math;
+import java.util.Arrays;
 
 /**
  * This class defines a simple embedded SQL utility class that is designed to
@@ -84,7 +85,7 @@ public class Retail {
    public double calculateDistance (double lat1, double long1, double lat2, double long2){
       double t1 = (lat1 - lat2) * (lat1 - lat2);
       double t2 = (long1 - long2) * (long1 - long2);
-      return Math.sqrt(t1 + t2); 
+      return Math.sqrt(t1 + t2);
    }
    /**
     * Method to execute an update SQL statement.  Update SQL instructions
@@ -219,12 +220,12 @@ public class Retail {
     * @throws java.sql.SQLException when failed to execute the query
     */
    public int getCurrSeqVal(String sequence) throws SQLException {
-	Statement stmt = this._connection.createStatement ();
+	   Statement stmt = this._connection.createStatement ();
 
-	ResultSet rs = stmt.executeQuery (String.format("Select currval('%s')", sequence));
-	if (rs.next())
-		return rs.getInt(1);
-	return -1;
+	   ResultSet rs = stmt.executeQuery (String.format("Select currval('%s')", sequence));
+	   if (rs.next())
+		   return rs.getInt(1);
+	   return -1;
    }
 
    /**
@@ -414,7 +415,49 @@ public class Retail {
 // Rest of the functions definitioa go in here
 
    public static void viewStores(Retail esql) {
+      try{
+         //getting logged-in user's location
+         String username = esql.getLoggedInUser();
+         String getUser = "SELECT * FROM Users U WHERE U.name = \'";
+         List<List<String>> users = esql.executeQueryAndReturnResult(getUser + username + "\';"); //grab users w username equal to current user (should return 1)
+         List<String> user = users.get(0); //get first (should be only) user
+         double userLat = Double.parseDouble(user.get(3));
+         double userLong = Double.parseDouble(user.get(4));
 
+         //get list of stores to parse each location's distance from user
+         String getStores = "SELECT * FROM Store S;";
+         List<List<String>> stores = esql.executeQueryAndReturnResult(getStores);
+         List<String> store;
+         double euclideanDist = 0.0;
+         double cartesianDistMiles = 0.0;
+         double storeLat = 0.0;
+         double storeLong = 0.0;
+         List<Double> distances = Arrays.asList(new Double[stores.size()]); //store distances of stores in separate array to reference in tandem w store
+         System.out.print("Total # of stores: " + stores.size());
+         for (int i = 0; i < stores.size(); i++){
+            store = stores.get(i);
+            storeLat = Double.parseDouble(store.get(2)); //reference column 3(lat) in sql results
+            storeLong = Double.parseDouble(store.get(3)); //reference column 4(long) in sql results
+            euclideanDist = esql.calculateDistance(userLat,userLong,storeLat,storeLong);
+            //cartesianDistMiles = (euclideanDist/360)*Math.PI*7918; //converts degrees into miles
+            // removes from stores list any stores > 30 miles from user
+            distances.set(i,euclideanDist);
+            if (euclideanDist > 30.0){
+               //System.out.print("\nOver 30 miles: " + store.get(1) + " " + euclideanDist);
+               stores.remove(i);
+               i = i-1;
+            }
+         }
+         System.out.print("\n# of stores after filtering: " + stores.size());
+         //output list of stores < 30 miles from user
+         System.out.print("\n|Store name|\t\t\t|Latitude|\t|Longitude|\t|Distance|");
+         for (int j = 0; j < stores.size(); j++){
+            store = stores.get(j);
+            System.out.printf("\n%s\t%s\t%s\t%.2f", store.get(1), store.get(2), store.get(3), distances.get(j));
+         }
+      }catch(Exception e){
+         System.err.println(e.getMessage());
+      }
    }
 
    public static void viewProducts(Retail esql) {   
