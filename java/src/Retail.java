@@ -439,7 +439,6 @@ public class Retail {
             storeLat = Double.parseDouble(store.get(2)); //reference column 3(lat) in sql results
             storeLong = Double.parseDouble(store.get(3)); //reference column 4(long) in sql results
             euclideanDist = esql.calculateDistance(userLat,userLong,storeLat,storeLong);
-            //cartesianDistMiles = (euclideanDist/360)*Math.PI*7918; //converts degrees into miles
             // removes from stores list any stores > 30 miles from user
             distances.set(i,euclideanDist);
             if (euclideanDist > 30.0){
@@ -450,10 +449,10 @@ public class Retail {
          }
          System.out.print("\n# of stores after filtering: " + stores.size());
          //output list of stores < 30 miles from user
-         System.out.print("\n|Store name|\t\t\t|Latitude|\t|Longitude|\t|Distance|");
+         System.out.print("\n|#|\t|Store name|\t\t\t|Latitude|\t|Longitude|\t|Distance|");
          for (int j = 0; j < stores.size(); j++){
             store = stores.get(j);
-            System.out.printf("\n%s\t%s\t%s\t%.2f", store.get(1), store.get(2), store.get(3), distances.get(j));
+            System.out.printf("\n%d\t%s\t%s\t%s\t%.2f", j+1, store.get(1), store.get(2), store.get(3), distances.get(j));
          }
       }catch(Exception e){
          System.err.println(e.getMessage());
@@ -473,7 +472,139 @@ public class Retail {
       }
    }
 
-   public static void placeOrder(Retail esql) {}
+   public static List<List<String>> returnStores(Retail esql){
+      //only called from within other methods
+      List<List<String>> stores = Arrays.asList(Arrays.asList(new String[20]));
+      try{
+         //getting logged-in user's location
+         String username = esql.getLoggedInUser();
+         String getUser = "SELECT * FROM Users U WHERE U.name = \'";
+         List<List<String>> users = esql.executeQueryAndReturnResult(getUser + username + "\';"); //grab users w username equal to current user (should return 1)
+         List<String> user = users.get(0); //get first (should be only) user
+         double userLat = Double.parseDouble(user.get(3));
+         double userLong = Double.parseDouble(user.get(4));
+
+         //get list of stores to parse each location's distance from user
+         String getStores = "SELECT * FROM Store S;";
+         stores = esql.executeQueryAndReturnResult(getStores);
+         List<String> store;
+         double euclideanDist = 0.0;
+         double cartesianDistMiles = 0.0;
+         double storeLat = 0.0;
+         double storeLong = 0.0;
+         List<Double> distances = Arrays.asList(new Double[stores.size()]); //store distances of stores in separate array to reference in tandem w store
+         for (int i = 0; i < stores.size(); i++){
+            store = stores.get(i);
+            storeLat = Double.parseDouble(store.get(2)); //reference column 3(lat) in sql results
+            storeLong = Double.parseDouble(store.get(3)); //reference column 4(long) in sql results
+            euclideanDist = esql.calculateDistance(userLat,userLong,storeLat,storeLong);
+            // removes from stores list any stores > 30 miles from user
+            distances.set(i,euclideanDist);
+            if (euclideanDist > 30.0){
+               //System.out.print("\nOver 30 miles: " + store.get(1) + " " + euclideanDist);
+               stores.remove(i);
+               i = i-1;
+            }
+         }
+      }catch(Exception e){
+         System.err.println (e.getMessage());
+      }
+      return stores;
+   }
+
+   public static void placeOrder(Retail esql) {
+      try{
+         String query1 = ""; //for general query usage
+         String query2 = ""; //for general query usage
+         //Find stores within 30 miles radius of user and print list of stores
+         viewStores(esql);
+         List<List<String>> stores = returnStores(esql);
+
+         //Grab userID from logged in user
+         String username = esql.getLoggedInUser();
+         String getUser = "SELECT * FROM Users U WHERE U.name = \'";
+         List<List<String>> users = esql.executeQueryAndReturnResult(getUser + username + "\';"); //grab users w username equal to current user (should return 1)
+         List<String> user = users.get(0); //get first (should be only) user
+         String userID =  user.get(0); //get userID from current user
+
+         //User select store from list
+         System.out.printf("\nPlease select a store (%d - %d): ", 1, stores.size());
+         String input = in.readLine();
+         int selection = Integer.parseInt(input);
+         List<String> store = stores.get(selection-1);
+         System.out.printf("\nYou selected store: %s\n", store.get(1));
+         String productQuery1 = "SELECT * FROM Product P WHERE P.storeID = \'";
+         String productQuery2 = "\' AND P.productName = \'";
+         String productQuery = "";
+         String productRequest = "";
+         String productStockUpdate = "";
+         boolean orderFlow = true;
+         boolean startover = false;
+         while(orderFlow){
+            startover = false;
+            System.out.print("\nWhat product would you like to order?: ");
+            input = in.readLine();
+            productQuery = productQuery1 + store.get(0) + productQuery2 + input + "\';";
+            if(esql.executeQuery(productQuery) > 0){
+               List<List<String>> products = esql.executeQueryAndReturnResult(productQuery);
+               List<String> productListing = products.get(0);
+               System.out.printf("\nHow many would you like to order? (price: $%d, in stock: %d): ", Integer.parseInt(productListing.get(3)), Integer.parseInt(productListing.get(2)));
+               input = in.readLine();
+               int requestedAmount = Integer.parseInt(input);
+               if(requestedAmount < (Integer.parseInt(productListing.get(2)) + 1)){ //check if num requested < num in stock at user's selected store
+                  //first, to create new order, determine new order number to be used (NEXTVAL on orderNumber sequence)
+                  //order format for reference: (orderNumber,customerID,storeID,productName,unitsOrdered,orderTime)
+                  //product listing format for reference: (storeID,productName,numberOfUnits,pricePerUnit)
+                  
+                  //get current date and time
+                  String timeQuery = "SELECT NOW()";
+                  List<List<String>> times = esql.executeQueryAndReturnResult(timeQuery);
+                  List<String> time = times.get(0);
+                  String timestamp = time.get(0);
+                  timestamp = timestamp.substring(0, timestamp.length() - 10);
+                  //System.out.print(timestamp);
+                  
+                  //confirm order
+                  System.out.printf("\nPlease confirm order:\n\tItem: %s\n\tQuantity: %d\n\nPlace order?\n1. Yes\n2. No, exit to main menu\n", productListing.get(1), requestedAmount);
+                  switch(readChoice()){
+                     case 1: startover = false; break;
+                     case 2: startover = true; break;
+                     default : System.out.println("Unrecognized choice!"); break;
+                  }
+                  if(startover){
+                     break;
+                  }
+                  //assemble and execute query
+                  productRequest = "INSERT INTO Orders VALUES (NEXTVAL(\'orders_orderNumber_seq\'),\'" + userID + "\',\'" + productListing.get(0) + "\',\'" + productListing.get(1) + "\',\'" + requestedAmount + "\',\'" + timestamp + "\');"; //create product request query
+                  esql.executeUpdate(productRequest);
+
+                  //update product listing's stock
+                  productStockUpdate = "UPDATE Product SET numberOfUnits = \'";
+                  productStockUpdate = productStockUpdate + (Integer.parseInt(productListing.get(2)) - requestedAmount) + "\' WHERE storeID = \'" + productListing.get(0) + "\' AND productName = \'" + productListing.get(1) + "\';";
+                  esql.executeUpdate(productStockUpdate);
+
+                  //print order confirmation
+                  System.out.print("\n\n\t\t\t=====Order Confirmation=====\n");
+                  query1 = "SELECT * FROM Orders O WHERE O.customerID = \'"; 
+                  query2 = "\' GROUP BY 1 ORDER BY 1 DESC LIMIT 1;";
+                  esql.executeQueryAndPrintResult(query1 + user.get(0) + query2);
+                  System.out.printf("\n\nPlace another order from this store?\nYour current store: %s\n1. Yes\n2. No, please exit to main menu\n", store.get(1));
+                  switch(readChoice()){
+                     case 1: orderFlow = true; break;
+                     case 2: orderFlow = false; break;
+                     default : System.out.println("Unrecognized choice!"); break;
+                  }
+               }
+               else{
+                  System.out.printf("Cannot request more than %s units of %s \n\t(you entered: %d) \nPlease reenter product selection.\n", productListing.get(2), productListing.get(1), requestedAmount);
+               }
+            }
+         }
+         
+      }catch(Exception e){
+         System.err.println (e.getMessage());
+      }
+   }
 
    public static void viewRecentOrders(Retail esql) {
       try{
