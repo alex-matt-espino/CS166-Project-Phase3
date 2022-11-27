@@ -624,9 +624,9 @@ public class Retail {
       try{
          String username = esql.getLoggedInUser();
          //check if logged-in user is a manager
-         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND U.type = \'manager\';");
+         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND (U.type = \'manager\' OR U.type = \'admin\');");
          if (storemanager < 1){
-            System.out.print("\nERROR: Must be logged in as a manager to use this function. Exiting...\n\n");
+            System.out.print("\nERROR: Must be logged in as a manager or administrator to use this function. Exiting...\n\n");
             return;
          }
          String query1 = "";
@@ -642,13 +642,13 @@ public class Retail {
       try{
          String username = esql.getLoggedInUser();
          //check if logged-in user is a manager
-         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND U.type = \'manager\';");
+         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND (U.type = \'manager\' OR U.type = \'admin\');");
          if (storemanager < 1){
-            System.out.print("\nERROR: Must be logged in as a manager to use this function. Exiting...\n\n");
+            System.out.print("\nERROR: Must be logged in as a manager or administrator to use this function. Exiting...\n\n");
             return;
          }
-         String query1 = "";
-         String query2 = "";
+         String query1 = "SELECT * FROM ProductUpdates P WHERE EXISTS (SELECT * FROM Users U, Store S WHERE (U.type = \'admin\' OR U.userID = S.managerID) AND U.name = \'";
+         String query2 = "\') GROUP BY P.updateNumber, P.managerID, P.storeID, P.productName, P.updatedOn ORDER BY 5 DESC LIMIT 5";
          String query = query1 + username + query2;
          int rowCount = esql.executeQueryAndPrintResult(query);
       }catch(Exception e){
@@ -660,12 +660,12 @@ public class Retail {
       try{
          String username = esql.getLoggedInUser();
          //check if logged-in user is a manager
-         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND U.type = \'manager\';");
+         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND (U.type = \'manager\' OR U.type = \'admin\');");
          if (storemanager < 1){
-            System.out.print("\nERROR: Must be logged in as a manager to use this function. Exiting...\n\n");
+            System.out.print("\nERROR: Must be logged in as a manager or administrator to use this function. Exiting...\n\n");
             return;
          }
-         String query1 = "SELECT * FROM (SELECT P.productName, COUNT(O.productName) AS total_orders FROM Product P, Orders O, Users U, Store S WHERE U.userID = S.managerID AND P.storeID = S.storeID AND O.storeID = S.storeID AND P.productName = O.productName AND U.name = \'";
+         String query1 = "SELECT * FROM (SELECT P.productName, COUNT(O.productName) AS total_orders FROM Product P, Orders O, Users U, Store S WHERE (U.userID = S.managerID OR U.type = \'admin\') AND P.storeID = S.storeID AND O.storeID = S.storeID AND P.productName = O.productName AND U.name = \'";
          String query2 = "\' GROUP BY P.productName) AS popular_products ORDER BY 2 DESC LIMIT 5;";
          String query = query1 + username + query2;
          int rowCount = esql.executeQueryAndPrintResult(query);
@@ -678,9 +678,9 @@ public class Retail {
       try{
          String username = esql.getLoggedInUser();
          //check if logged-in user is a manager
-         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND U.type = \'manager\';");
+         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND (U.type = \'manager\' OR U.type = \'admin\');");
          if (storemanager < 1){
-            System.out.print("\nERROR: Must be logged in as a manager to use this function. Exiting...\n\n");
+            System.out.print("\nERROR: Must be logged in as a manager or administrator to use this function. Exiting...\n\n");
             return;
          }
          String query1 = "";
