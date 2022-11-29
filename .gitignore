@@ -10,6 +10,7 @@
 !.vscode/*.code-snippets
 logfile
 *.class
+*.code-workspace
 # Local History for Visual Studio Code
 .history/
 
