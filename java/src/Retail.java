@@ -461,12 +461,62 @@ public class Retail {
 
    public static void viewProducts(Retail esql) {   
       try{
-            String query = "SELECT p.storeID, p.productName, p.numberOfUnits FROM product p, store s WHERE p.storeID = s.storeID AND s.storeID = ";
-            System.out.print("\tEnter the storeID to view the products: ");
-            String input = in.readLine();
-            input ="\'" + input + "\';";
-            query += input; 
-            int rowCount = esql.executeQueryAndPrintResult(query); 
+
+         //initialize
+         List<List<String>> stores = new ArrayList<List<String>>();
+         List<String> store = new ArrayList<String>();
+         List<List<String>> products = new ArrayList<List<String>>();
+         List<String> product = new ArrayList<String>();
+         boolean viewingProducts = true;
+         String storeID = "";
+         String input = "";
+
+         while(viewingProducts){
+            //output list of stores that user can request to
+
+            String getStores = "SELECT * FROM Store;";
+            stores = esql.executeQueryAndReturnResult(getStores);
+            System.out.print("\n|#|\t|Store name|\t\t\t|Latitude|\t|Longitude|");
+            for(int i = 0; i < stores.size(); i++){
+               store = stores.get(i);
+               System.out.printf("\n%d\t%s\t%s\t%s", (i+1), store.get(1), store.get(2), store.get(3));
+            }
+
+            //select store, pass input to stores array index
+            System.out.printf("\nPlease select a store to view its products (%d - %d): ", 1, stores.size());
+            input = in.readLine();
+            store = stores.get(Integer.parseInt(input) - 1);
+            storeID = store.get(0);
+            System.out.printf("\nYou selected store: %s\n", store.get(1));
+
+            //get list of products from selected store
+         
+            //get current product listing
+            String getProduct = "SELECT * FROM Product WHERE storeID = \'" + storeID + "\';";
+            System.out.print("\n|#|\t|Product|\t\t\t|Price|\t|Quantity|");
+            products = esql.executeQueryAndReturnResult(getProduct);
+            for(int j = 0; j < products.size(); j++){
+               product = products.get(j);
+               System.out.printf("\n %d\t%s\t$%.2f\t%d", (j+1), product.get(1), Double.parseDouble(product.get(3)), Integer.parseInt(product.get(2)));
+            }
+
+            System.out.print("\n\nView another store's products?\n\t1. Yes\n\t2. No\n\t");
+            switch(readChoice()){
+               case 1: break;
+               case 2: viewingProducts = false; break;
+               default: System.out.println("Unrecognized choice! Exiting..."); viewingProducts = false; break;
+            }
+
+            if(!viewingProducts){
+               return;
+            }
+
+
+         }
+
+
+
+
       }catch(Exception e){
          System.err.println (e.getMessage());
       }
@@ -533,11 +583,15 @@ public class Retail {
          int selection = Integer.parseInt(input);
          List<String> store = stores.get(selection-1);
          System.out.printf("\nYou selected store: %s\n", store.get(1));
+
+         //init queries
          String productQuery1 = "SELECT * FROM Product P WHERE P.storeID = \'";
          String productQuery2 = "\' AND P.productName = \'";
          String productQuery = "";
          String productRequest = "";
          String productStockUpdate = "";
+
+         //start order flow
          boolean orderFlow = true;
          boolean startover = false;
          while(orderFlow){
@@ -632,17 +686,147 @@ public class Retail {
 
    public static void updateProduct(Retail esql) {
       try{
+         //Grab userID from logged in user
          String username = esql.getLoggedInUser();
-         //check if logged-in user is a manager
-         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.name = \'" + username + "\' AND (U.type = \'manager\' OR U.type = \'admin\');");
+         String getUser = "SELECT * FROM Users U WHERE U.name = \'";
+         List<List<String>> users = esql.executeQueryAndReturnResult(getUser + username + "\';"); //grab users w username equal to current user (should return 1)
+         List<String> user = users.get(0); //get first (should be only) user
+         String userID =  user.get(0); //get userID from current user
+
+         //initialize
+         String input = "";
+         String storeID = "";
+         List<String> store = new ArrayList<String>();
+         List<List<String>> stores = new ArrayList<List<String>>();
+         List<String> product = new ArrayList<String>();
+         List<List<String>> products = new ArrayList<List<String>>();
+         String getStores = "";
+         String prodName = "";
+         String warehouseID = "";
+         String numUnits = "";
+         boolean isAdmin = false;
+         int newQuantity = 0;
+         Double newPrice = 0.0;
+         boolean startover = false;
+
+         //check if logged-in user is a manager or admin
+         int storemanager = esql.executeQuery("SELECT * FROM Users U WHERE U.userID = \'" + userID + "\' AND (U.type = \'manager\' OR U.type = \'admin\');");
          if (storemanager < 1){
             System.out.print("\nERROR: Must be logged in as a manager or administrator to use this function. Exiting...\n\n");
             return;
          }
-         String query1 = "";
-         String query2 = "";
-         String query = query1 + username + query2;
-         int rowCount = esql.executeQueryAndPrintResult(query);
+         if(Integer.parseInt(user.get(0)) == 1){
+            //only the admin will have userID = 1
+            isAdmin = true;
+         }
+
+         //managers must choose store from list of stores they manage, admin can choose any store
+         getStores = "SELECT * FROM Store S WHERE S.managerID = \'" + userID + "\';";
+
+         if(isAdmin){
+            System.out.print("\n========Admin View========\n");
+            getStores = "SELECT * FROM Store;";
+         }
+         
+         //output list of stores that user can request to
+         stores = esql.executeQueryAndReturnResult(getStores);
+         System.out.print("\n|#|\t|Store name|\t\t\t|Latitude|\t|Longitude|");
+         for(int i = 0; i < stores.size(); i++){
+            store = stores.get(i);
+            System.out.printf("\n%d\t%s\t%s\t%s", (i+1), store.get(1), store.get(2), store.get(3));
+         }
+
+         //select store, pass input to stores array index
+         System.out.printf("\nPlease select a store (%d - %d): ", 1, stores.size());
+         input = in.readLine();
+         store = stores.get(Integer.parseInt(input) - 1);
+         storeID = store.get(0);
+         System.out.printf("\nYou selected store: %s\n", store.get(1));
+
+         //get list of products from selected store
+         
+         //get current product listing
+         String getProduct = "SELECT * FROM Product WHERE storeID = \'" + storeID + "\';";
+         System.out.print("\n|#|\t|Product|\t\t\t|Price|\t|Quantity|");
+         products = esql.executeQueryAndReturnResult(getProduct);
+         for(int j = 0; j < products.size(); j++){
+            product = products.get(j);
+            System.out.printf("\n %d\t%s\t$%.2f\t%d", (j+1), product.get(1), Double.parseDouble(product.get(3)), Integer.parseInt(product.get(2)));
+         }
+
+         //product selection
+         System.out.printf("\nPlease select a product (%d - %d): ", 1, products.size());
+         input = in.readLine();
+         product = products.get(Integer.parseInt(input) - 1);
+         System.out.printf("\nYou selected: %s  $%.2f, %s", product.get(1), Double.parseDouble(product.get(3)), product.get(2));
+
+         //update price or quantity
+         System.out.print("\nUpdate quantity or price?\n\n\t1. Quantity\n\t2. Price\n\t3. Both Quantity and Price\n\t");
+         switch(readChoice()){
+            case 1: 
+               System.out.print("\nEnter new quantity: ");
+               newQuantity = Integer.parseInt(in.readLine());
+               newPrice = Double.parseDouble(product.get(3));
+               break;
+            case 2:
+               System.out.print("\nEnter new price ($#.##): $");
+               newPrice = Double.parseDouble(in.readLine());
+               newQuantity = Integer.parseInt(product.get(2));
+               break;
+            case 3:
+               System.out.print("\nEnter new quantity: ");
+               newQuantity = Integer.parseInt(in.readLine());
+               System.out.print("\n\tEnter new price ($#.##): $");
+               newPrice = Double.parseDouble(in.readLine());
+               break;
+            default: System.out.println("\nUnrecognized choice! Exiting to main menu..."); startover = true; break;
+         }
+
+         if(startover){
+            return;
+         }
+
+         //display old and new entries side-by-side
+         System.out.print("\nPlease confirm changes: \n");
+         System.out.printf("Old: %s  $%.2f, %s\n", product.get(1), Double.parseDouble(product.get(3)), product.get(2));
+         System.out.printf("New: %s  $%.2f, %s\n", product.get(1), newPrice, newQuantity);
+
+         System.out.print("\n\t1. Confirm and exit\n\t2. Discard and exit\n\n\t");
+         switch(readChoice()){
+            case 1: break;
+            case 2: startover = true; break;
+            default: System.out.println("\nUnrecognized choice! Exiting to main menu..."); startover = true; break;
+         }
+
+         if(startover){
+            return;
+         }
+
+         //confirm update
+         String productUpdate = "UPDATE Product SET numberOfUnits = \'" + newQuantity + "\', pricePerUnit = \'" + newPrice + "\' WHERE storeID = \'" + product.get(0) + "\' AND productName = \'" + product.get(1) + "\';";
+         esql.executeUpdate(productUpdate);
+         System.out.print("\n\n========Update Confirmation========\n\n");
+         String updatedEntry  = "SELECT * FROM Product P WHERE storeID = \'" + storeID + "\' AND productName = \'" + product.get(1) + "\';";
+         esql.executeQueryAndPrintResult(updatedEntry);
+
+         //log update if user is a manager
+         if(!isAdmin){
+            //get current date and time
+            String timeQuery = "SELECT NOW()";
+            List<List<String>> times = esql.executeQueryAndReturnResult(timeQuery);
+            List<String> time = times.get(0);
+            String timestamp = time.get(0);
+            timestamp = timestamp.substring(0, timestamp.length() - 10);
+            String newUpdate = "INSERT INTO ProductUpdates VALUES(NEXTVAL(\'productupdates_updateNumber_seq\'),\'" + userID + "\',\'" + product.get(0) + "\',\'" + product.get(1) + "\',\'" + timestamp + "\');";
+            System.out.println(newUpdate);
+            esql.executeUpdate(newUpdate);
+
+            //confirm log update
+            System.out.print("\n\n======Update Log Confirmation======\n\n");
+            String updateLogEntry = "SELECT * FROM ProductUpdates ORDER BY 1 DESC LIMIT 1";
+            esql.executeQueryAndPrintResult(updateLogEntry);
+         }
+
       }catch(Exception e){
          System.err.println(e.getMessage());
       }
