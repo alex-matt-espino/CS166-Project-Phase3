@@ -583,75 +583,83 @@ public class Retail {
          int selection = Integer.parseInt(input);
          List<String> store = stores.get(selection-1);
          System.out.printf("\nYou selected store: %s\n", store.get(1));
+         String storeID = store.get(0);
 
          //init queries
-         String productQuery1 = "SELECT * FROM Product P WHERE P.storeID = \'";
-         String productQuery2 = "\' AND P.productName = \'";
-         String productQuery = "";
          String productRequest = "";
          String productStockUpdate = "";
+         List<List<String>> products = esql.executeQueryAndReturnResult("SELECT * FROM Product;");
+         List<String> product = new ArrayList<String>();
 
          //start order flow
          boolean orderFlow = true;
          boolean startover = false;
          while(orderFlow){
             startover = false;
-            System.out.print("\nWhat product would you like to order?: ");
+
+            //list products at store
+            System.out.print("\n\n\t========Available Products========\n\n");
+            String getProduct = "SELECT * FROM Product WHERE storeID = \'" + storeID + "\';";
+            System.out.print("\n|#|\t|Product|\t\t\t|Price|\t|Quantity|");
+            products = esql.executeQueryAndReturnResult(getProduct);
+            for(int j = 0; j < products.size(); j++){
+               product = products.get(j);
+               System.out.printf("\n %d\t%s\t$%.2f\t%d", (j+1), product.get(1), Double.parseDouble(product.get(3)), Integer.parseInt(product.get(2)));
+            }
+            System.out.printf("\nWhat product would you like to order? (%d - %d): ", 1, products.size());
             input = in.readLine();
-            productQuery = productQuery1 + store.get(0) + productQuery2 + input + "\';";
-            if(esql.executeQuery(productQuery) > 0){
-               List<List<String>> products = esql.executeQueryAndReturnResult(productQuery);
-               List<String> productListing = products.get(0);
-               System.out.printf("\nHow many would you like to order? (price: $%d, in stock: %d): ", Integer.parseInt(productListing.get(3)), Integer.parseInt(productListing.get(2)));
-               input = in.readLine();
-               int requestedAmount = Integer.parseInt(input);
-               if(requestedAmount < (Integer.parseInt(productListing.get(2)) + 1)){ //check if num requested < num in stock at user's selected store
-                  //first, to create new order, determine new order number to be used (NEXTVAL on orderNumber sequence)
-                  //order format for reference: (orderNumber,customerID,storeID,productName,unitsOrdered,orderTime)
-                  //product listing format for reference: (storeID,productName,numberOfUnits,pricePerUnit)
-                  
-                  //get current date and time
-                  String timeQuery = "SELECT NOW()";
-                  List<List<String>> times = esql.executeQueryAndReturnResult(timeQuery);
-                  List<String> time = times.get(0);
-                  String timestamp = time.get(0);
-                  timestamp = timestamp.substring(0, timestamp.length() - 10);
-                  //System.out.print(timestamp);
-                  
-                  //confirm order
-                  System.out.printf("\nPlease confirm order:\n\tItem: %s\n\tQuantity: %d\n\nPlace order?\n1. Yes\n2. No, exit to main menu\n", productListing.get(1), requestedAmount);
-                  switch(readChoice()){
-                     case 1: startover = false; break;
-                     case 2: startover = true; break;
-                     default : System.out.println("Unrecognized choice!"); break;
-                  }
-                  if(startover){
-                     break;
-                  }
-                  //assemble and execute query
-                  productRequest = "INSERT INTO Orders VALUES (NEXTVAL(\'orders_orderNumber_seq\'),\'" + userID + "\',\'" + productListing.get(0) + "\',\'" + productListing.get(1) + "\',\'" + requestedAmount + "\',\'" + timestamp + "\');"; //create product request query
-                  esql.executeUpdate(productRequest);
-
-                  //update product listing's stock
-                  productStockUpdate = "UPDATE Product SET numberOfUnits = \'";
-                  productStockUpdate = productStockUpdate + (Integer.parseInt(productListing.get(2)) - requestedAmount) + "\' WHERE storeID = \'" + productListing.get(0) + "\' AND productName = \'" + productListing.get(1) + "\';";
-                  esql.executeUpdate(productStockUpdate);
-
-                  //print order confirmation
-                  System.out.print("\n\n\t\t\t=====Order Confirmation=====\n");
-                  query1 = "SELECT * FROM Orders O WHERE O.customerID = \'"; 
-                  query2 = "\' GROUP BY 1 ORDER BY 1 DESC LIMIT 1;";
-                  esql.executeQueryAndPrintResult(query1 + user.get(0) + query2);
-                  System.out.printf("\n\nPlace another order from this store?\nYour current store: %s\n1. Yes\n2. No, please exit to main menu\n", store.get(1));
-                  switch(readChoice()){
-                     case 1: orderFlow = true; break;
-                     case 2: orderFlow = false; break;
-                     default : System.out.println("Unrecognized choice!"); break;
-                  }
+            product = products.get(Integer.parseInt(input) - 1);
+            System.out.printf("\nYou selected: %s  $%.2f, %s\n", product.get(1), Double.parseDouble(product.get(3)), product.get(2));
+            
+            System.out.printf("\nHow many would you like to order? (price: $%d, in stock: %d): ", Integer.parseInt(product.get(3)), Integer.parseInt(product.get(2)));
+            input = in.readLine();
+            int requestedAmount = Integer.parseInt(input);
+            if(requestedAmount < (Integer.parseInt(product.get(2)) + 1)){ //check if num requested < num in stock at user's selected store
+               //first, to create new order, determine new order number to be used (NEXTVAL on orderNumber sequence)
+               //order format for reference: (orderNumber,customerID,storeID,productName,unitsOrdered,orderTime)
+               //product listing format for reference: (storeID,productName,numberOfUnits,pricePerUnit)
+               
+               //get current date and time
+               String timeQuery = "SELECT NOW()";
+               List<List<String>> times = esql.executeQueryAndReturnResult(timeQuery);
+               List<String> time = times.get(0);
+               String timestamp = time.get(0);
+               timestamp = timestamp.substring(0, timestamp.length() - 10);
+               //System.out.print(timestamp);
+               
+               //confirm order
+               System.out.printf("\nPlease confirm order:\n\tItem: %s\n\tQuantity: %d\n\nPlace order?\n1. Yes\n2. No, exit to main menu\n", product.get(1), requestedAmount);
+               switch(readChoice()){
+                  case 1: startover = false; break;
+                  case 2: startover = true; break;
+                  default : System.out.println("Unrecognized choice!"); break;
                }
-               else{
-                  System.out.printf("Cannot request more than %s units of %s \n\t(you entered: %d) \nPlease reenter product selection.\n", productListing.get(2), productListing.get(1), requestedAmount);
+               if(startover){
+                  break;
                }
+               //assemble and execute query
+               productRequest = "INSERT INTO Orders VALUES (NEXTVAL(\'orders_orderNumber_seq\'),\'" + userID + "\',\'" + product.get(0) + "\',\'" + product.get(1) + "\',\'" + requestedAmount + "\',\'" + timestamp + "\');"; //create product request query
+               esql.executeUpdate(productRequest);
+
+               //update product listing's stock
+               productStockUpdate = "UPDATE Product SET numberOfUnits = \'";
+               productStockUpdate = productStockUpdate + (Integer.parseInt(product.get(2)) - requestedAmount) + "\' WHERE storeID = \'" + product.get(0) + "\' AND productName = \'" + product.get(1) + "\';";
+               esql.executeUpdate(productStockUpdate);
+
+               //print order confirmation
+               System.out.print("\n\n\t\t\t=====Order Confirmation=====\n");
+               query1 = "SELECT * FROM Orders O WHERE O.customerID = \'"; 
+               query2 = "\' GROUP BY 1 ORDER BY 1 DESC LIMIT 1;";
+               esql.executeQueryAndPrintResult(query1 + user.get(0) + query2);
+               System.out.printf("\n\nPlace another order from this store?\nYour current store: %s\n1. Yes\n2. No, please exit to main menu\n", store.get(1));
+               switch(readChoice()){
+                  case 1: orderFlow = true; break;
+                  case 2: orderFlow = false; break;
+                  default : System.out.println("Unrecognized choice!"); break;
+               }
+            }
+            else{
+               System.out.printf("Cannot request more than %s units of %s \n\t(you entered: %d) \nPlease reenter product selection.\n", product.get(2), product.get(1), requestedAmount);
             }
          }
          
