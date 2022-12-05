@@ -970,14 +970,21 @@ public class Retail {
          System.out.printf("\nYou selected store: %s\n", store.get(1));
 
          //product entry
-         System.out.print("\nPlease enter product name: ");
-         prodName = in.readLine();
 
-         //get current product listing
-         String getProduct = "SELECT * FROM Product WHERE storeID = \'" + storeID + "\' AND productName = \'" + prodName + "\';";
+         //list products at store
+         String getProduct = "SELECT * FROM Product WHERE storeID = \'" + storeID + "\';";
          List<List<String>> products = esql.executeQueryAndReturnResult(getProduct);
-         List<String> product = products.get(0);
-         System.out.printf("\n\tCurrent stock: %d", Integer.parseInt(product.get(2)));
+         List<String> product = new ArrayList<String>();
+         System.out.print("\n\n\t========Available Products========\n\n");
+         System.out.print("\n|#|\t|Product|\t\t\t|Price|\t|Quantity|");
+         for(int j = 0; j < products.size(); j++){
+            product = products.get(j);
+            System.out.printf("\n %d\t%s\t$%.2f\t%d", (j+1), product.get(1), Double.parseDouble(product.get(3)), Integer.parseInt(product.get(2)));
+         }
+         System.out.printf("\nWhich product would you like to resupply? (%d - %d): ", 1, products.size());
+         input = in.readLine();
+         product = products.get(Integer.parseInt(input) - 1);
+         System.out.printf("\nYou selected: %s  $%.2f, %s\n", product.get(1), Double.parseDouble(product.get(3)), product.get(2));
 
          System.out.print("\n\tPlease enter desired # of units: ");
          numUnits = in.readLine();
@@ -985,7 +992,7 @@ public class Retail {
          warehouseID = in.readLine();
 
          //insert new request
-         String supplyRequest = "INSERT INTO ProductSupplyRequests VALUES(NEXTVAL(\'productsupplyrequests_requestNumber_seq\'),\'" + userID + "\',\'" + warehouseID + "\',\'" + storeID + "\',\'" + prodName + "\',\'" + numUnits + "\');";
+         String supplyRequest = "INSERT INTO ProductSupplyRequests VALUES(NEXTVAL(\'productsupplyrequests_requestNumber_seq\'),\'" + userID + "\',\'" + warehouseID + "\',\'" + store.get(0) + "\',\'" + product.get(1) + "\',\'" + numUnits + "\');";
          //System.out.println(supplyRequest);
          esql.executeUpdate(supplyRequest);
 
