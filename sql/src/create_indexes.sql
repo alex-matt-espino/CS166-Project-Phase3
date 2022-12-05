@@ -7,11 +7,8 @@ ON Store USING btree (managerID);
 CREATE INDEX user_userID
 ON Users USING btree (userID);
 
-CREATE INDEX user_userID
-ON Users (userID);
-
 CREATE INDEX product_storeID
-ON Product USING btree (product_storeID);
+ON Product USING btree (storeID);
 
 CREATE INDEX product_productName
 ON Product (storeID);
