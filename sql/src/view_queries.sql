@@ -19,7 +19,10 @@ GROUP BY O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime
 ORDER BY 5 DESC
 LIMIT 5;
 
--- 4: view recent updates *
+
+
+
+-- view recent updates *
 SELECT p.updateNumber, p.updatedOn
 FROM productUpdates p
 LEFT OUTER JOIN productUpdates p1
@@ -52,4 +55,15 @@ LIMIT 5;
 -- ORDER BY 2 DESC
 -- LIMIT 10;
 
--- 6: view popular customers
+-- view popular customers
+SELECT *
+FROM (SELECT O.customerID, SUM(O.unitsOrdered) AS total_units_ordered
+      FROM Product P, Orders O, Users U, Store S
+      WHERE U.userID = S.managerID AND --check if user is manager
+      P.storeID = S.storeID AND
+      O.storeID = S.storeID AND
+      P.productName = O.productName AND
+      S.managerID = '40' --in Retail.java, pass in stored userID (store after login, check if manager)
+      GROUP BY O.customerID) AS popular_products
+ORDER BY 2 DESC
+LIMIT 5;

@@ -906,10 +906,17 @@ public class Retail {
             System.out.print("\nERROR: Must be logged in as a manager or administrator to use this function. Exiting...\n\n");
             return;
          }
-         String query1 = "";
-         String query2 = "";
+         String query1 = "SELECT * FROM (SELECT O.customerID, SUM(O.unitsOrdered) AS total_units_ordered FROM Product P, Orders O, Users U, Store S WHERE (U.userID = S.managerID OR U.type = \'admin\') AND P.storeID = S.storeID AND O.storeID = S.storeID AND P.productName = O.productName AND U.name = \'";
+         String query2 = "\' GROUP BY O.customerID) AS popular_products ORDER BY 2 DESC LIMIT 5;";
          String query = query1 + username + query2;
-         int rowCount = esql.executeQueryAndPrintResult(query);
+         List<List<String>> popularCustomers = esql.executeQueryAndReturnResult(query);
+         List<String> customer = new ArrayList<String>();
+         System.out.print("\n\t=====Popular Products=====\n");
+         System.out.print("\n|customerID|\t\t |unitsOrdered|");
+         for(int i = 0; i < popularCustomers.size(); i++){
+            customer = popularCustomers.get(i);
+            System.out.printf("\n%s %s", customer.get(0), customer.get(1));
+         }
       }catch(Exception e){
          System.err.println(e.getMessage());
       }
