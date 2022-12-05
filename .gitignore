@@ -9,7 +9,7 @@
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 logfile
-*.class
+java/classes/*.class
 *.code-workspace
 # Local History for Visual Studio Code
 .history/
